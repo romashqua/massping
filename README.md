@@ -107,6 +107,7 @@ _build/prod/rel/massping/bin/massping start
 | `--web-port` | Web server port | 8080 |
 | `--randomize` | Randomize IP scan order | off |
 | `--filter-blackhole` | Exclude private/reserved IPs | off |
+| `--adaptive` | Enable AIMD adaptive rate control | off |
 | `--batch-size` | Batch size for SYN scan | 1000 |
 | `--chunks` | Chunk multiplier (x CPUs) | 2 |
 | `--aggressive` | Fast mode (50K conc, 500ms, 1 retry) | - |
@@ -285,6 +286,7 @@ _build/prod/rel/massping/bin/massping start
 | `--web-port` | Порт web сервера | 8080 |
 | `--randomize` | Случайный порядок IP | выкл |
 | `--filter-blackhole` | Исключить приватные IP | выкл |
+| `--adaptive` | Включить AIMD адаптивный rate control | выкл |
 | `--batch-size` | Размер батча для SYN | 1000 |
 | `--chunks` | Множитель чанков (x CPUs) | 2 |
 | `--aggressive` | Быстрый (50K conc, 500ms, 1 retry) | - |

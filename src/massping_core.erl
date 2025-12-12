@@ -33,6 +33,7 @@
     ports :: [pos_integer()],
     opts :: map(),
     rate_limiter :: pid(),
+    adaptive_rate :: pid() | undefined,  %% AIMD rate controller
     state :: running | paused | stopped | completed,
     total :: non_neg_integer(),
     scanned :: ets:tid(),        %% ETS counter table for atomic updates
@@ -102,6 +103,19 @@ handle_call({start_scan, CIDRs, Ports, Opts}, _From, State) ->
             %% Start rate limiter for this scan
             {ok, RateLimiter} = rate_limiter:start_link(RateLimit),
             
+            %% Start adaptive rate controller if enabled
+            AdaptiveRate = case maps:get(adaptive, Opts, false) of
+                true ->
+                    {ok, AR} = adaptive_rate:start_link(#{
+                        initial_rate => RateLimit,
+                        min_rate => 100,
+                        max_rate => RateLimit * 2
+                    }),
+                    AR;
+                false ->
+                    undefined
+            end,
+            
             %% Calculate total targets
             Total = calculate_total_targets(CIDRs, Ports),
             
@@ -118,6 +132,7 @@ handle_call({start_scan, CIDRs, Ports, Opts}, _From, State) ->
                 ports = Ports,
                 opts = Opts,
                 rate_limiter = RateLimiter,
+                adaptive_rate = AdaptiveRate,
                 state = running,
                 total = Total,
                 scanned = CounterTab,
@@ -186,6 +201,14 @@ handle_call({get_status, ScanId}, _From, State) ->
                 true -> completed;
                 false -> Scan#scan.state
             end,
+            %% Get adaptive rate stats if enabled
+            AdaptiveStats = case Scan#scan.adaptive_rate of
+                undefined -> #{};
+                AR -> 
+                    try adaptive_rate:get_stats(AR)
+                    catch _:_ -> #{}
+                    end
+            end,
             Status = #{
                 state => ScanState,
                 total => Scan#scan.total,
@@ -195,7 +218,8 @@ handle_call({get_status, ScanId}, _From, State) ->
                     T -> (ScannedCount / T) * 100
                 end,
                 elapsed => erlang:monotonic_time(millisecond) - Scan#scan.start_time,
-                results_count => ets:info(Scan#scan.results, size)
+                results_count => ets:info(Scan#scan.results, size),
+                adaptive_rate => AdaptiveStats
             },
             {reply, {ok, Status}, State};
         error ->
@@ -230,9 +254,13 @@ handle_info(_Info, State) ->
     {noreply, State}.
 
 terminate(_Reason, State) ->
-    %% Stop all rate limiters and cleanup ETS tables
+    %% Stop all rate limiters, adaptive rate controllers and cleanup ETS tables
     maps:fold(fun(_Id, Scan, _Acc) ->
-        catch rate_limiter:stop(Scan#scan.rate_limiter)
+        catch rate_limiter:stop(Scan#scan.rate_limiter),
+        case Scan#scan.adaptive_rate of
+            undefined -> ok;
+            AR -> catch adaptive_rate:stop(AR)
+        end
     end, ok, State#state.scans),
     ok.
 

@@ -253,6 +253,8 @@ parse_options(["--turbo" | Rest], Acc) ->
         batch_size => 5000,
         chunk_multiplier => 4
     });
+parse_options(["--adaptive" | Rest], Acc) ->
+    parse_options(Rest, Acc#{adaptive => true});
 parse_options(["--batch-size", SizeStr | Rest], Acc) ->
     Size = list_to_integer(SizeStr),
     parse_options(Rest, Acc#{batch_size => Size});
@@ -746,6 +748,7 @@ print_usage() ->
     io:format("ADVANCED OPTIONS:~n"),
     io:format("  --randomize               Randomize target order (IDS evasion)~n"),
     io:format("  --filter-blackhole        Skip unroutable IPs~n"),
+    io:format("  --adaptive                Enable AIMD adaptive rate control~n"),
     io:format("  --batch-size <num>        Batch size for SYN scan (default: 1000)~n"),
     io:format("  --chunks <num>            Chunk multiplier (default: 2 x CPUs)~n~n"),
     io:format("EXAMPLES:~n"),
