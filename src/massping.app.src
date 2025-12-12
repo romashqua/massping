@@ -1,0 +1,31 @@
+{application, massping, [
+    {description, "High-performance distributed port scanner"},
+    {vsn, "1.0.0"},
+    {registered, [
+        massping_sup,
+        massping_core,
+        massping_scan_manager,
+        rate_limiter
+    ]},
+    {mod, {massping_app, []}},
+    {applications, [
+        kernel,
+        stdlib,
+        sasl,
+        cowboy,
+        jsx,
+        prometheus
+    ]},
+    {env, [
+        {default_ports, [80, 443, 22, 3389, 8080]},
+        {connect_timeout, 1000},
+        {rate_limit, 10000},
+        {max_parallel, 100000},
+        {retry_count, 2},
+        {output_format, json},
+        {web_port, 8080}
+    ]},
+    {modules, []},
+    {licenses, ["Apache-2.0"]},
+    {links, [{"Github", "https://github.com/romashqua/massping"}]}
+]}.
